@@ -10,6 +10,7 @@ import {
 import type { Command } from "./command";
 import type { ClientConfig } from "./types";
 import { onVoiceStateUpdate as UvcOnVoiceStateUpdate } from "./uvc";
+import { GUILD } from "./db";
 
 export class NewBotClient {
   public client: Client;
@@ -37,20 +38,32 @@ export class NewBotClient {
     return;
   }
 
-  public start(): Promise<void> {
-    return this.client.login(this.config.token).then();
+  public async start(): Promise<void> {
+    await this.client.login(this.config.token);
+    this.client.guilds.cache.forEach((guild) => {
+      // GUILD.findOrCreate({
+      //   where: {
+      //     id: guild.id,
+      //   },
+      //   defaults: {
+      //     id: guild.id,
+      //   },
+      // });
+    });
   }
 
-  private onInteractionCreate(interaction: Interaction<CacheType>): void {
+  private async onInteractionCreate(interaction: Interaction<CacheType>) {
     if (interaction.isChatInputCommand()) {
-      const action =
-        this.commands.find((v) => {
-          return interaction.commandName === v.config.name;
-        })?.config.action ??
-        ((interaction) => {
-          interaction.reply("Something went wrong :/");
-        });
-      action(interaction);
+      const action = this.commands.find((v) => {
+        return interaction.commandName === v.config.name;
+      })?.config.action;
+      try {
+        if (action) await action(interaction);
+      } catch (err) {
+        const reply = JSON.stringify(err) ?? "Something went wrong :/";
+        if (interaction.replied) await interaction.editReply(reply);
+        else await interaction.reply(reply);
+      }
     }
     return;
   }

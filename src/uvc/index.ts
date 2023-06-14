@@ -1,19 +1,54 @@
-import { ChannelType, VoiceState } from "discord.js";
+import { ChannelType, Guild, VoiceState } from "discord.js";
 import type { NewBotClient } from "../client";
 import { Command } from "../command";
-import { UVCI_MODEL, UVC_MODEL } from "../db";
+import { UVC, UVCC } from "../db";
 
 export function addCommands(bot: NewBotClient) {
   bot.commands.push(
     new Command({
-      description: "Create user-voice-channel's creator",
-      name: "create-uvc-creator",
+      description: "Enable user-voice-channel's creator",
+      name: "enable-uvc-creator",
       async action(interaction) {
         const channel = interaction.options.getChannel("channel");
-        if (channel !== null && channel.type === ChannelType.GuildVoice) {
+        if (
+          channel !== null &&
+          channel.type === ChannelType.GuildVoice &&
+          interaction.guildId
+        ) {
+          await UVCC.create({
+            guildId: interaction.guildId,
+            id: channel.id,
+          });
+          await interaction.reply("Command ran successfully!");
+        }
+      },
+      extra(builder) {
+        return builder
+          .addChannelOption((v) =>
+            v.setName("channel").setDescription("channel").setRequired(true)
+          )
+          .setDefaultMemberPermissions(0);
+      },
+    })
+  );
+
+  bot.commands.push(
+    new Command({
+      description: "Disable user-voice-channel's creator",
+      name: "disable-uvc-creator",
+      async action(interaction) {
+        const channel = interaction.options.getChannel("channel");
+        if (
+          channel !== null &&
+          channel.type === ChannelType.GuildVoice &&
+          interaction.guildId
+        ) {
           try {
-            await UVC_MODEL.create({
-              id: channel.id,
+            await UVCC.destroy({
+              where: {
+                guildId: interaction.guildId,
+                id: channel.id,
+              },
             });
           } catch {
             await interaction.reply("Something went wrong :/");
@@ -35,37 +70,36 @@ export async function onVoiceStateUpdate(
   oldState: VoiceState,
   newState: VoiceState
 ) {
-  const isUVC = newState.channelId
-    ? (await UVC_MODEL.findOne({
+  const isJoiningUVCC = newState.channelId
+    ? (await UVCC.findOne({
         where: {
           id: newState.channelId,
         },
       })) !== null
     : false;
-  const isUVCI = oldState.channelId
-    ? (await UVCI_MODEL.findOne({
+  const isLeavingUVC = oldState.channelId
+    ? (await UVC.findOne({
         where: {
           id: oldState.channelId,
         },
       })) !== null
     : false;
 
-  if (isUVC) {
-    const uvci = await newState.channel?.parent?.children.create({
+  if (isJoiningUVCC) {
+    const uvc = await newState.channel?.parent?.children.create({
       name: `${newState.member?.displayName ?? "User"}'s VC`,
       type: ChannelType.GuildVoice,
     });
-
-    if (uvci?.id) {
-      newState.member?.voice.setChannel(uvci);
-      UVCI_MODEL.create({ id: uvci.id });
-    }
+    if (!uvc?.id) return;
+    newState.member?.voice.setChannel(uvc);
+    if (!newState.channelId) return;
+    UVC.create({ id: uvc.id, uvccId: newState.channelId });
   }
 
-  if (isUVCI) {
+  if (isLeavingUVC) {
     if ((oldState.channel?.members.size ?? 0) <= 0) {
       oldState.channel?.delete();
-      await UVCI_MODEL.destroy({
+      await UVC.destroy({
         where: { id: oldState.channelId ?? undefined },
       });
     }
