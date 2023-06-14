@@ -1,20 +1,20 @@
 import type {
-    ChatInputCommandInteraction,
-    SlashCommandBuilder,
+  ChatInputCommandInteraction,
+  SlashCommandBuilder,
 } from "discord.js";
 
 export interface ClientConfig {
-    appId: string;
-    token: string;
+  appId: string;
+  token: string;
 }
 
 export interface CommandConfig {
-    description: string;
-    name: string;
-    action?: (interaction: ChatInputCommandInteraction) => void;
-    extra?: (builder: SlashCommandBuilder) => AnySlashCommandBuilder;
+  description: string;
+  name: string;
+  action?: (interaction: ChatInputCommandInteraction) => void;
+  extra?: (builder: SlashCommandBuilder) => AnySlashCommandBuilder;
 }
 
 export type AnySlashCommandBuilder =
-    | SlashCommandBuilder
-    | Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;
+  | SlashCommandBuilder
+  | Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;

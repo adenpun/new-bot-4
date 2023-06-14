@@ -1,7 +1,7 @@
 import { Role } from "discord.js";
 import type { NewBotClient } from "../client";
 import { Command } from "../command";
-import { LOCKDOWN_MODEL, type LockdownModel } from "../db";
+import { LOCKDOWN_MODEL } from "../db";
 
 export function addCommands(bot: NewBotClient) {
   bot.commands.push(

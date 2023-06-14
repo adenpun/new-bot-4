@@ -1,4 +1,4 @@
-import { ChannelType, type VoiceState } from "discord.js";
+import { ChannelType, VoiceState } from "discord.js";
 import type { NewBotClient } from "../client";
 import { Command } from "../command";
 import { UVCI_MODEL, UVC_MODEL } from "../db";
