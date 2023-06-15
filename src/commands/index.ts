@@ -1,16 +1,23 @@
+import { Locale } from "discord.js";
 import { NewBotClient } from "../client";
 import { Command } from "../command";
+import { addCommands as addPollCommands } from "../poll";
 import { addCommands as addUvcCommands } from "../uvc";
-import { addCommands as addDatabaseCommands } from "../db";
-import { addCommands as addVoteCommands } from "../vote";
+// import { addCommands as addDatabaseCommands } from "../db";
+// import { addCommands as addGreetingsCommands } from "../greetings";
 
 export function addCommands(bot: NewBotClient) {
   bot.commands.push(
     new Command({
-      description: "get some help",
+      description: "Get some help.",
       name: "help",
       async action(interaction) {
-        await interaction.reply("正在維修...（提供更好的體驗）");
+        if (
+          interaction.locale === Locale.ChineseCN ||
+          interaction.locale === Locale.ChineseTW
+        )
+          await interaction.reply("正在維修...");
+        else await interaction.reply("Fixing things...");
       },
     })
   );
@@ -20,13 +27,15 @@ export function addCommands(bot: NewBotClient) {
       name: "say",
       async action(interaction) {
         const message = interaction.options.getString("message");
-        if (message) {
-          const msg = await interaction.channel?.send(message);
-          await interaction.reply({
-            content: `Sent! URL: ${msg?.url}`,
-            ephemeral: true,
-          });
-        }
+
+        if (message === null) throw "Message is not provided.";
+
+        await interaction.deferReply({ ephemeral: true });
+
+        const msg = await interaction.channel?.send(message);
+        await interaction.editReply({
+          content: `Sent! URL: ${msg?.url}`,
+        });
       },
       extra(builder) {
         return builder.addStringOption((v) =>
@@ -46,8 +55,8 @@ export function addCommands(bot: NewBotClient) {
         const subcommand = interaction.options.getSubcommand();
         switch (subcommand) {
           case "get": {
-            const a = interaction.options.getUser("user");
-            const url = a?.avatarURL({ size: 4096 });
+            const user = interaction.options.getUser("user");
+            const url = user?.avatarURL({ size: 4096 });
             if (url) interaction.reply(url);
             break;
           }
@@ -66,7 +75,8 @@ export function addCommands(bot: NewBotClient) {
     })
   );
 
-  addDatabaseCommands(bot);
+  // addDatabaseCommands(bot);
+  // addGreetingsCommands(bot);
+  addPollCommands(bot);
   addUvcCommands(bot);
-  addVoteCommands(bot);
 }

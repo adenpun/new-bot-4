@@ -1,6 +1,7 @@
 import {
   CacheType,
   Client,
+  Events,
   GatewayIntentBits,
   Interaction,
   REST,
@@ -23,8 +24,14 @@ export class NewBotClient {
       intents: GatewayIntentBits.Guilds | GatewayIntentBits.GuildVoiceStates,
     });
     this.config = config;
-    this.client.on("interactionCreate", this.onInteractionCreate.bind(this));
-    this.client.on("voiceStateUpdate", this.onVoiceStateUpdate.bind(this));
+    this.client.on(
+      Events.InteractionCreate,
+      this.onInteractionCreate.bind(this)
+    );
+    this.client.on(Events.VoiceStateUpdate, this.onVoiceStateUpdate.bind(this));
+    // this.client.on(Events.  , this.onVoiceStateUpdate.bind(this));
+    // this.client.on(Events);
+    // this.client.on(Events.GuildCreate, this.onVoiceStateUpdate.bind(this));
 
     return this;
   }
@@ -40,15 +47,20 @@ export class NewBotClient {
 
   public async start(): Promise<void> {
     await this.client.login(this.config.token);
-    this.client.guilds.cache.forEach((guild) => {
-      // GUILD.findOrCreate({
-      //   where: {
-      //     id: guild.id,
-      //   },
-      //   defaults: {
-      //     id: guild.id,
-      //   },
-      // });
+    await new Promise<void>((resolve) =>
+      this.client.once(Events.ClientReady, () => {
+        resolve();
+      })
+    );
+    (await this.client.guilds.fetch()).forEach((guild) => {
+      GUILD.findOrCreate({
+        where: {
+          id: guild.id,
+        },
+        defaults: {
+          id: guild.id,
+        },
+      });
     });
   }
 
@@ -61,7 +73,8 @@ export class NewBotClient {
         if (action) await action(interaction);
       } catch (err) {
         const reply = JSON.stringify(err) ?? "Something went wrong :/";
-        if (interaction.replied) await interaction.editReply(reply);
+        if (interaction.deferred || interaction.replied)
+          await interaction.editReply(reply);
         else await interaction.reply(reply);
       }
     }
