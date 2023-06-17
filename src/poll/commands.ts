@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 import type { NewBotClient } from "../client";
 import { Command } from "../command";
+import { POLL } from "./db";
 
 export function addCommands(bot: NewBotClient) {
   bot.commands.push(
@@ -46,12 +47,19 @@ export function addCommands(bot: NewBotClient) {
                 buttons
               );
 
-            await interaction.channel?.send({
+            const message = await interaction.channel?.send({
               embeds: [new EmbedBuilder().setTitle(title).addFields(fields)],
               components: [row],
             });
 
+            if (typeof message === "undefined") throw undefined;
+
+            POLL.create({
+              messageId: message.id,
+            });
+
             await interaction.editReply("Created the poll.");
+
             break;
           }
         }

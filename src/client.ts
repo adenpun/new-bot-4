@@ -10,8 +10,10 @@ import {
 } from "discord.js";
 import type { Command } from "./command";
 import type { ClientConfig } from "./types";
-import { onVoiceStateUpdate as UvcOnVoiceStateUpdate } from "./uvc";
+import { onVoiceStateUpdate as uvcOnVoiceStateUpdate } from "./uvc";
 import { GUILD } from "./db";
+import { onInteractionCreate as commandsOnInteractionCreate } from "./commands/events";
+import { onInteractionCreate as pollOnInteractionCreate } from "./poll/events";
 
 export class NewBotClient {
   public client: Client;
@@ -65,25 +67,11 @@ export class NewBotClient {
   }
 
   private async onInteractionCreate(interaction: Interaction<CacheType>) {
-    if (interaction.isChatInputCommand()) {
-      const action = this.commands.find((v) => {
-        return interaction.commandName === v.config.name;
-      })?.config.action;
-      try {
-        if (action) await action(interaction);
-      } catch (err) {
-        const reply = JSON.stringify(err) ?? "Something went wrong :/";
-        if (interaction.deferred || interaction.replied)
-          await interaction.editReply(reply);
-        else await interaction.reply(reply);
-      }
-    }
-    return;
+    await commandsOnInteractionCreate.call(this, interaction);
+    await pollOnInteractionCreate.call(this, interaction);
   }
 
   private async onVoiceStateUpdate(oldState: VoiceState, newState: VoiceState) {
-    await UvcOnVoiceStateUpdate(oldState, newState);
-
-    return;
+    await uvcOnVoiceStateUpdate.call(this, oldState, newState);
   }
 }

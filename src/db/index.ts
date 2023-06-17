@@ -41,5 +41,6 @@ export const GUILD = db.define<Model<GuildModel>>("guild", {
   },
 });
 
-import "../uvc/db";
 import "../greetings/db";
+import "../poll/db";
+import "../uvc/db";
